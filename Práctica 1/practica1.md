@@ -155,26 +155,7 @@ Nuevo WordCount:
  
 ## 5) Indique si utilizando el dataset Libros es posible resolver los siguientes problemas: 
 ## a. Obtener los títulos de todos los libros
-Sí, pero se debe modificar el emulador para que al leer las lineas de los archivos con readlines(), se guarde además el nombre del mismo:
-
-Antes:
-```python
-class Cluster:
-    def __init__(this, inputs):
-        ...
-        lines.append((i[1], file.readlines()))
-        ...
-```
-
-Después:
-```python
-class Cluster:
-    def __init__(this, inputs):
-        ...
-        lines.append((i[1], f, file.readlines()))
-        ...
-```
-
+Sí, pero se debe modificar el emulador para que al leer las lineas de los archivos con readlines(), se guarde además el nombre del mismo. Pero esto implicaría propagar este cambio a otras partes del código para que la función map reciba el nombre del archivo además de la clave y un valor.
 ## b. Obtener la cantidad de palabras promedio por párrafo
 Sí, pero se debe modificar el emulador.
 ## c. Obtener la cantidad de párrafos promedio por libro
@@ -188,3 +169,66 @@ Sí, modificando el emulador.
 ## g. El top 20 de las palabras más usadas por cada libro 
 Sí, modificando el diálogo.
 
+## 6) Una empresa proveedora de internet realizó una encuesta para conocer el grado de satisfacción de sus clientes, en un formulario web los clientes debían completar un campo con los textos "Muy satisfecho", "Algo satisfecho", "Poco satisfecho", “Disconforme” o "Muy disconforme". Utilice el dataset Encuesta para saber cuántos clientes están en cada una de las cinco categorías.
+
+Ejercicio hecho en google colab.
+
+## 7) El dataset Inversionistas posee los nombres, dni, fecha de nacimiento (día, mes y año como campos separados) e importe invertido por diferentes personas en la apertura de un nuevo negocio en la ciudad. Se desea saber:
+### a. El nombre del inversionista más joven
+### b. El total del importe invertido por todos los inversionistas
+### c. El promedio de edad
+## Implemente una solución en MapReduce. ¿Se puede resolver los tres problemas en unúnico job?
+
+Se puede implementar en un único job:
+
+```python
+    import datetime
+
+    root_path = "/content/"
+
+    inputDir = root_path + "WordCount/input/"
+    outputDir = root_path + "WordCount/output/"
+
+    def calcular_edad(dia, mes, anio):
+        fecha_actual = datetime.date.today()
+        nacimiento = datetime.date(anio, mes, dia)
+        edad = fecha_actual.year - nacimiento.year
+        if (fecha_actual.month, fecha_actual.day) < (nacimiento.month, nacimiento.day):
+            edad -= 1
+        return edad
+
+    def fmap(key, value, context):
+        inv = value.split()
+        nombre, dia, mes, anio, importe = inv
+        fecha_nac = (int(anio), int(mes), int(dia))
+
+        #punto a)
+        context.write("más_joven", (fecha_nac, nombre))
+        #punto b)
+        context.write("importe_total", int(importe))
+        #punto c)
+        context.write("edades", calcular_edad(int(dia), int(mes), int(anio)))
+
+    def fred(key, values, context):
+        if key == "más_joven":
+            _, nombre = max(values, key=lambda t: t[0])
+            context.write("inversionista_más_joven", nombre)
+        elif: key == "importe_total"
+            importe_total = sum(values)
+            context.write("importe_total_de_todos", importe_total)
+        else:
+            edades = list(values)
+            prom = sum(edades) / len(edades)
+            context.write("promedio_edad", int(prom))
+
+
+    job = Job(inputDir, outputDir, fmap, fred)
+    success = job.waitForCompletion()
+```
+
+Salida:
+
+![salidapunto7](salidapunto7.png)
+
+
+## 8) Si contáramos con un cluster donde podemos configurar 100 nodos para la tarea de reduce ¿De qué manera se podrían usar esos 100 nodos en el ejemplo de los eventos POSITIVO, NEGATIVO y NEUTRO visto en la teoría?
